@@ -51,7 +51,7 @@ plt.rcParams['axes.unicode_minus'] = False
 st.set_page_config(page_title="Hofstee 방식 웹앱 실험실", layout="centered")
 st.title("📊 Hofstee 방식 분할점수 설정 시뮬레이터")
 st.markdown("""
-'지필평가조회-교과목별일람표 조회-전체학급'에서 다운로드한 엑셀(XLS) 파일을 업로드하고, 
+'지필평가조회-교과목별일람표 조회-전체학급'에서 다운로드한 엑셀(XLS-data) 파일을 업로드하고, 
 성취도별 허용 기준을 입력하여 **Hofstee 합격선(교점)**을 계산하는 웹앱입니다.
 """)
 
