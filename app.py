@@ -112,15 +112,21 @@ if uploaded_file is not None:
         # 3. 사용자 임의 허용 기준 입력받기 (UI 컴포넌트로 변경)
         # ==========================================
         st.header("2단계: Hofstee 허용 기준 영역 설정")
-        st.markdown("성취도별 허용 점수 및 비율 범위를 지정하세요.")
+        st.markdown("""
+        지필(수행)평가에 대한 성취도별 허용 점수 범위 및 누적비율 허용 범위를 지정하세요.  
+        (예시) A성취도 분할점수/비율 확인을 위한 입력치 -> 점수 최소 = 80, 점수 최대 = 90, 누적 비율 최소 = 10, 누적 비율 최대 = 20  
+          
+        B성취도부터는 성취도의 누적 비율이므로, 누적 비율 권장치 입력할 때, A비율을 합친 값으로 입력  
+        (예) 성취도 A 비율은 대략 20%이고, 성취도 B 비율을 20~30%로 설정하고 싶을 때,  
+        입력할 누적 비율 최소 = 40, 누적 비율 최대 = 50 으로 입력할 것!""")
 
         col1, col2 = st.columns(2)
         with col1:
-            user_xmin = st.number_input("권장 점수 최소 기준값 (X축 최소)", value=70.0, step=1.0)
-            user_xmax = st.number_input("권장 점수 최대 기준값 (X축 최대)", value=85.0, step=1.0)
+            user_xmin = st.number_input("해당 성취도의 지필(수행)평가 **점수** 권장 **최소** 기준값 (X축 최소)", value=70.0, step=1.0)
+            user_xmax = st.number_input("해당 성취도의 지필(수행)평가 **점수** 권장 **최대** 기준값 (X축 최대)", value=85.0, step=1.0)
         with col2:
-            user_ymin = st.number_input("권장 비율 최소 기준값 (Y축 최소, %)", value=10.0, step=1.0)
-            user_ymax = st.number_input("권장 비율 최대 기준값 (Y축 최대, %)", value=30.0, step=1.0)
+            user_ymin = st.number_input("해당 성취도의 **누적 비율** 권장 **최소** 기준값 (Y축 최소, %)", value=10.0, step=1.0)
+            user_ymax = st.number_input("해당 성취도의 **누적 비율** 권장 **최대** 기준값 (Y축 최대, %)", value=30.0, step=1.0)
 
         # 사각형의 너비와 높이 계산
         rect_width = user_xmax - user_xmin
