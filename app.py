@@ -123,8 +123,8 @@ if uploaded_file is not None:
 
         col1, col2 = st.columns(2)
         with col1:
-            user_xmin = st.number_input("해당 성취도의 지필(수행)평가 **점수** 권장 **최소** 기준값 (X축 최소)", value=70.0, step=1.0)
-            user_xmax = st.number_input("해당 성취도의 지필(수행)평가 **점수** 권장 **최대** 기준값 (X축 최대)", value=85.0, step=1.0)
+            user_xmin = st.number_input("해당 성취도의 평가 **점수** 권장 **최소** 기준값 (X축 최소)", value=70.0, step=1.0)
+            user_xmax = st.number_input("해당 성취도의 평가 **점수** 권장 **최대** 기준값 (X축 최대)", value=85.0, step=1.0)
         with col2:
             user_ymin = st.number_input("해당 성취도의 **누적 비율** 권장 **최소** 기준값 (Y축 최소, %)", value=10.0, step=1.0)
             user_ymax = st.number_input("해당 성취도의 **누적 비율** 권장 **최대** 기준값 (Y축 최대, %)", value=30.0, step=1.0)
