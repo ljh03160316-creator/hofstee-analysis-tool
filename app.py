@@ -61,7 +61,7 @@ st.divider()
 # 1. 엑셀 파일 업로드 및 데이터 정제
 # ==========================================
 st.header("1단계: 데이터 업로드")
-uploaded_file = st.file_uploader("교과목별일람표 엑셀 파일을 선택해주세요.", type=["xls", "xlsx"])
+uploaded_file = st.file_uploader("나이스에서 지필평가조회 탭의 **교과목별일람표-전체학급** 엑셀 파일(XLS-data)을 선택해주세요.", type=["xls", "xlsx"])
 
 if uploaded_file is not None:
     try:
