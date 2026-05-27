@@ -108,7 +108,6 @@ if uploaded_file is not None:
             horizontal=True
         )
 
-        # 구간별 가이드라인 초기값 세팅
         default_values = {
             "A/B분할점수": {"ymin": 10.0, "ymax": 20.0, "xmin": 80.0, "xmax": 90.0},
             "B/C분할점수": {"ymin": 35.0, "ymax": 45.0, "xmin": 65.0, "xmax": 80.0},
@@ -195,12 +194,12 @@ if uploaded_file is not None:
                     st.success(f"🎯 **Hofstee 합격선(교점) 계산 성공!**")
                     metric_col1, metric_col2 = st.columns(2)
                     metric_col1.metric("분할점수 (컷오프 점수)", f"{intersection_x:.2f} 점")
-                    metric_col2.metric("누적 탈락 비율", f"{intersection_y:.2f} %")
+                    metric_col2.metric("누적 비율", f"{intersection_y:.2f} %")
                     
                     if st.button(f"💾 현재 [{target_step}] 결과 데이터에 저장하기"):
                         st.session_state.hofstee_results[target_step] = {
                             "분할점수(점)": round(intersection_x, 2),
-                            "누적탈락비율(%)": round(intersection_y, 2),
+                            "누적비율(%)": round(intersection_y, 2),
                             "점수범위": f"{user_xmin}~{user_xmax}",
                             "비율범위": f"{user_ymin}~{user_ymax}"
                         }
@@ -238,7 +237,6 @@ if uploaded_file is not None:
         
         required_steps = ["A/B분할점수", "B/C분할점수", "C/D분할점수", "D/E분할점수"]
         
-        # 현재 활성화된 화면 기준으로 생략 판단 가이드 구축
         if target_step == "E/미도달분할점수" and skip_step:
             has_e_cutoff = False
         else:
@@ -272,17 +270,18 @@ if uploaded_file is not None:
             st.header("🎯 3단계: 문항 난이도별 배점 및 추정분할점수 세팅")
             st.subheader("1) 문항 유형 및 난이도별 배점 입력")
             
+            # 👉 요청하신 새로운 초기값 적용 (선택형 하=30, 서답형 하=5 등)
             col_choice, col_seo = st.columns(2)
             with col_choice:
                 st.markdown("**[선택형 배점]**")
-                w_c_low = st.number_input("선택형 하 배점", min_value=0, max_value=100, value=20, step=1)
-                w_c_mid = st.number_input("선택형 중 배점", min_value=0, max_value=100, value=30, step=1)
-                w_c_high = st.number_input("선택형 상 배점", min_value=0, max_value=100, value=15, step=1)
+                w_c_low = st.number_input("선택형 하 배점", min_value=0, max_value=100, value=30, step=1)
+                w_c_mid = st.number_input("선택형 중 배점", min_value=0, max_value=100, value=20, step=1)
+                w_c_high = st.number_input("선택형 상 배점", min_value=0, max_value=100, value=19, step=1)
             with col_seo:
                 st.markdown("**[서답형 배점]**")
-                w_s_low = st.number_input("서답형 하 배점", min_value=0, max_value=100, value=15, step=1)
-                w_s_mid = st.number_input("서답형 중 배점", min_value=0, max_value=100, value=15, step=1)
-                w_s_high = st.number_input("서답형 상 배점", min_value=0, max_value=100, value=5, step=1)
+                w_s_low = st.number_input("서답형 하 배점", min_value=0, max_value=100, value=5, step=1)
+                w_s_mid = st.number_input("서답형 중 배점", min_value=0, max_value=100, value=20, step=1)
+                w_s_high = st.number_input("서답형 상 배점", min_value=0, max_value=100, value=6, step=1)
                 
             total_weight = w_c_low + w_c_mid + w_c_high + w_s_low + w_s_mid + w_s_high
             st.metric(label="입력된 배점 총합", value=f"{total_weight} / 100 점")
@@ -292,7 +291,6 @@ if uploaded_file is not None:
             else:
                 st.success("✅ 배점 총합 100점 확인 완료! 목표 분할점수를 바탕으로 오차 최소화 시뮬레이션을 시작합니다.")
                 
-                # 목표 점수 맵핑
                 target_scores = {
                     "A": st.session_state.hofstee_results["A/B분할점수"]["분할점수(점)"],
                     "B": st.session_state.hofstee_results["B/C분할점수"]["분할점수(점)"],
@@ -302,7 +300,6 @@ if uploaded_file is not None:
                 if "E/미도달분할점수" in st.session_state.hofstee_results:
                     target_scores["E"] = st.session_state.hofstee_results["E/미도달분할점수"]["분할점수(점)"]
                 
-                # 규칙 기반 초기 가이드라인 맵핑 (타이브레이킹용 기준값)
                 init_p = {
                     "A": [95, 80, 70, 95, 75, 60],
                     "B": [95, 70, 60, 90, 65, 50],
@@ -315,7 +312,7 @@ if uploaded_file is not None:
                 levels = list(target_scores.keys())
                 optimized_p = {}
                 
-                # 완전 탐색 알고리즘 구동 단계 (5% 단위 격자화)
+                # 완전 탐색 최적화 알고리즘
                 for lv in levels:
                     target = target_scores[lv]
                     base = init_p[lv]
@@ -323,7 +320,6 @@ if uploaded_file is not None:
                     best_dist_to_base = float('inf')
                     best_combo = base.copy()
                     
-                    # 제약 조건 만족 조합 서칭 (상 <= 중 <= 하 정렬 규칙 임베디드)
                     for c0 in range(5, 100, 5):
                         for c1 in range(5, c0 + 1, 5): 
                             for c2 in range(5, c1 + 1, 5):
@@ -336,7 +332,6 @@ if uploaded_file is not None:
                                             
                                             score_diff = abs(calc_score - target)
                                             
-                                            # 오차가 가장 작거나, 오차가 같은 경우 초기값과 성향이 가장 닮은 조합 선출
                                             if score_diff < best_score_diff:
                                                 best_score_diff = score_diff
                                                 best_dist_to_base = (c0-base[0])**2 + (c1-base[1])**2 + (c2-base[2])**2 + (s_l-base[3])**2 + (s_m-base[4])**2 + (s_h-base[5])**2
@@ -349,7 +344,6 @@ if uploaded_file is not None:
                     
                     optimized_p[lv] = best_combo
 
-                # 제약 조건 상하 성취수준 간 역전 보정 자동 검증 (A >= B >= C >= D >= E)
                 for i in range(1, len(levels)):
                     prev_lv = levels[i-1]
                     curr_lv = levels[i]
@@ -357,21 +351,39 @@ if uploaded_file is not None:
                         if optimized_p[curr_lv][idx] > optimized_p[prev_lv][idx]:
                             optimized_p[curr_lv][idx] = optimized_p[prev_lv][idx]
 
-                # 데이터 프레임 테이블 가독성 강화 가공 단계
-                columns_list = ["선택형 하", "선택형 중", "선택형 상", "---", "서답형 하", "서답형 중", "서답형 상"]
-                grid_data = {}
+                # 👉 행과 열 전치 (세로축: 문항유형, 가로축: 성취수준)
+                columns_list = ["선택형 하", "선택형 중", "선택형 상", "서답형 하", "서답형 중", "서답형 상"]
                 
+                # 데이터 프레임 사전 빌드
+                table_dict = {}
                 for lv in levels:
-                    res = optimized_p[lv]
-                    grid_data[f"성취수준 {lv}"] = [
-                        f"{res[0]}%", f"{res[1]}%", f"{res[2]}%", "||", f"{res[3]}%", f"{res[4]}%", f"{res[5]}%"
-                    ]
+                    table_dict[f"성취수준 {lv}"] = optimized_p[lv]
                 
-                final_table = pd.DataFrame(grid_data, index=columns_list).T
+                final_table = pd.DataFrame(table_dict, index=columns_list)
                 
                 st.subheader("2) 성취수준별 최적화된 문항 예상 정답률 표")
-                st.markdown("💡 *목표 분할점수와 매칭하여 자동으로 미세조정 및 역전 보정이 완료된 최종 분석 테이블입니다.*")
-                st.table(final_table)
+                st.markdown("💡 *선택형(블루 계열)과 서답형(그린 계열) 구분을 명확히 디자인한 전치 레이아웃입니다.*")
+
+                # 👉 디자인 고도화: 선택형/서답형 파트별 배경색 및 폰트 차별화 스타일링 정의
+                def style_by_row_type(df):
+                    # 기본 스타일 데이터프레임 복사 생성
+                    styles = pd.DataFrame('', index=df.index, columns=df.columns)
+                    
+                    for idx in df.index:
+                        if "선택형" in idx:
+                            # 선택형 배경색: 은은하고 정돈된 파란색 계열, 텍스트 볼드
+                            styles.loc[idx] = 'background-color: #EBF3FC; color: #1E3A8A; font-weight: bold; border-bottom: 1px solid #D1E2F9;'
+                        elif "서답형" in idx:
+                            # 서답형 배경색: 구분이 명확히 가는 은은한 녹색 계열, 텍스트 볼드
+                            styles.loc[idx] = 'background-color: #EFA9B; color: #065F46; font-weight: bold; border-bottom: 1px solid #D1FAE5;'
+                    return styles
+
+                # 값 뒤에 % 기호 서식 추가하여 렌더링
+                formatted_table = final_table.map(lambda x: f"{x}%")
+                styled_df = formatted_table.style.apply(style_by_row_type, axis=None)
+
+                # 인터랙티브 데이터프레임으로 화면에 출력
+                st.dataframe(styled_df, use_container_width=True)
                 
                 # 리포트 통계 출력
                 st.markdown("**[참고] 목표 분할점수 vs 시뮬레이션 산출점수 비교**")
