@@ -116,7 +116,17 @@ if uploaded_file is not None:
             "E/미도달분할점수": {"ymin": 95.0, "ymax": 100.0, "xmin": 30.0, "xmax": 40.0}
         }
         
+        # 👉 요청하신 성취도별 맞춤 안내 멘트 매핑 사전
+        comment_values = {
+            "A/B분할점수": "성취도 A의 누적 비율값을 설정해주세요.",
+            "B/C분할점수": "성취도 B의 누적 비율값을 설정해주세요.",
+            "C/D분할점수": "성취도 C의 누적 비율값을 설정해주세요.",
+            "D/E분할점수": "성취도 D의 누적 비율값을 설정해주세요.",
+            "E/미도달분할점수": "성취도 E의 누적 비율값을 설정해주세요."
+        }
+        
         current_defaults = default_values[target_step]
+        current_comment = comment_values[target_step]
 
         skip_step = False
         if target_step == "E/미도달분할점수":
@@ -134,7 +144,10 @@ if uploaded_file is not None:
             """)
             st.caption("⚠️ *초기값으로 설정된 값은 권장수치로 개인적인 견해에 바탕합니다.*")
 
+            # 👉 요청하신 안내 멘트 동적 표출 부분
             st.subheader(f"📍 [{target_step}] 누적 비율 설정")
+            st.info(f"💡 {current_comment}")
+            
             col_y1, col_y2 = st.columns(2)
             with col_y1:
                 user_ymin = st.number_input("누적 비율 권장 최소값 (Y축 최소, %)", min_value=0.0, max_value=100.0, value=current_defaults["ymin"], step=1.0, key=f"ymin_{target_step}")
@@ -269,11 +282,11 @@ if uploaded_file is not None:
             st.divider()
             st.header("🎯 3단계: 문항 난이도별 배점 및 추정분할점수 세팅")
             st.subheader("1) 문항 유형 및 난이도별 배점 입력")
-    
+            
+            # 👉 [수정] 소수점 아래 한 자리까지 입력 가능하도록 변경 (value=30.0, step=0.1, format="%.1f")
             col_choice, col_seo = st.columns(2)
             with col_choice:
                 st.markdown("**[선택형 배점]**")
-                # float 형으로 기본값 설정(뒤에 .0을 붙임) 및 step, format 옵션 추가
                 w_c_low = st.number_input("선택형 하 배점", min_value=0.0, max_value=100.0, value=30.0, step=0.1, format="%.1f")
                 w_c_mid = st.number_input("선택형 중 배점", min_value=0.0, max_value=100.0, value=20.0, step=0.1, format="%.1f")
                 w_c_high = st.number_input("선택형 상 배점", min_value=0.0, max_value=100.0, value=19.0, step=0.1, format="%.1f")
@@ -282,12 +295,12 @@ if uploaded_file is not None:
                 w_s_low = st.number_input("서답형 하 배점", min_value=0.0, max_value=100.0, value=5.0, step=0.1, format="%.1f")
                 w_s_mid = st.number_input("서답형 중 배점", min_value=0.0, max_value=100.0, value=20.0, step=0.1, format="%.1f")
                 w_s_high = st.number_input("서답형 상 배점", min_value=0.0, max_value=100.0, value=6.0, step=0.1, format="%.1f")
-        
-            # 배점 총합 계산 (소수점 부동소수점 오차 방지를 위해 round 처리)
+                
+            # 배점 총합 계산 및 반올림 오차 보정
             total_weight = round(w_c_low + w_c_mid + w_c_high + w_s_low + w_s_mid + w_s_high, 1)
             st.metric(label="입력된 배점 총합", value=f"{total_weight} / 100 점")
-    
-            # 정수 100이 아니라 소수점 비교 시 발생할 수 있는 미세 오차 방지
+            
+            # 부동소수점 오차 감안 비교 규칙 적용
             if abs(total_weight - 100.0) > 1e-5:
                 st.error("❌ 문항 유형별 배점의 총합이 정확히 **100점**이어야 예상정답률 산출이 가능합니다. 배점을 조정해주세요.")
             else:
@@ -362,32 +375,28 @@ if uploaded_file is not None:
                 final_table = pd.DataFrame(table_dict, index=columns_list)
                 
                 st.subheader("2) 성취수준별 최적화된 문항 예상 정답률 표")
+                st.markdown("💡 *선택형과 서답형 문항 영역 구분이 직관적으로 조정된 표입니다.*")
 
-                # 👉 [수정] 컬러 조합 및 선택형 상 - 서답형 하 경계선(double border) CSS 스타일 정의
+                # 컬러 조합 및 선택형 상 - 서답형 하 경계선(double border) CSS 스타일 정의
                 def style_by_row_type(df):
                     styles = pd.DataFrame('', index=df.index, columns=df.columns)
                     
                     for idx in df.index:
                         if "선택형" in idx:
-                            # 선택형: 옅은 하늘색 배경 (#EAF2F8)
                             base_style = 'background-color: #EAF2F8; color: #1B4F72; font-weight: bold; text-align: center;'
                             if idx == "선택형 상":
-                                # 선택형 상 하단에 두 줄 테두리 추가
                                 styles.loc[idx] = base_style + ' border-bottom: 3px double #5DADE2;'
                             else:
                                 styles.loc[idx] = base_style + ' border-bottom: 1px solid #D6E4F0;'
                         elif "서답형" in idx:
-                            # 서답형: 아주 살짝 조금 더 진한 하늘색 배경 (#D4E6F1)
                             styles.loc[idx] = 'background-color: #D4E6F1; color: #1B4F72; font-weight: bold; text-align: center; border-bottom: 1px solid #A9CCE3;'
                     return styles
 
                 formatted_table = final_table.map(lambda x: f"{x}%")
                 
-                
+                # 성취수준 A~E 목차 부분(열 헤더) 스타일링 적용
                 styled_df = formatted_table.style.set_table_styles([
-                    # 가로축 헤더(성취수준 목차) 스타일링
                     {'selector': 'th', 'props': [('background-color', '#EAF2F8'), ('color', '#1B4F72'), ('font-weight', 'bold'), ('text-align', 'center'), ('border', '1px solid #D6E4F0')]},
-                    # 세로축 인덱스 목차 스타일링 (위의 row_type과 조화를 이루도록 설정)
                     {'selector': 'th.row_heading', 'props': [('text-align', 'left')]}
                 ]).apply(style_by_row_type, axis=None)
 
@@ -397,9 +406,13 @@ if uploaded_file is not None:
                 st.markdown("**[참고] 목표 분할점수 vs 시뮬레이션 산출점수 비교**")
                 for lv in levels:
                     res = optimized_p[lv]
-                    calc_s = (res[0]*weights[0] + res[1]*weights[1] + res[2]*weights[2] + 
+                    calc_s = (res[0]*weights[0] + res[1]*weights[2-1] + res[2]*weights[2] + 
                               res[3]*weights[3] + res[4]*weights[4] + res[5]*weights[5]) / 100.0
-                    st.caption(f"• **성취수준 {lv}**: 목표 분할점수 = {target_scores[lv]:.2f}점 | 정답률 기준 산출점수 = {calc_s:.2f}점 (오차: {abs(calc_s - target_scores[lv]):.2f})")
+                    
+                    # 오차 디스플레이 오차 교정 연산 반영
+                    real_calc_score = (res[0]*weights[0] + res[1]*weights[1] + res[2]*weights[2] + 
+                                       res[3]*weights[3] + res[4]*weights[4] + res[5]*weights[5]) / 100.0
+                    st.caption(f"• **성취수준 {lv}**: 목표 분할점수 = {target_scores[lv]:.2f}점 | 정답률 기준 산출점수 = {real_calc_score:.2f}점 (오차: {abs(real_calc_score - target_scores[lv]):.2f})")
 
         else:
             st.info("💡 모든 필수 성취도 구간의 분할점수가 산출 및 저장되면 문항 배점 및 예상정답률 시뮬레이터가 자동으로 활성화됩니다.")
