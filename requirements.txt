@@ -4,3 +4,7 @@ pandas
 matplotlib
 seaborn
 openpyxl
+os
+matplotlib.pyplot
+matplotlib.font_manager
+urllib.request
