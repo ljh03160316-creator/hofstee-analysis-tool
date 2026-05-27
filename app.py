@@ -269,23 +269,26 @@ if uploaded_file is not None:
             st.divider()
             st.header("🎯 3단계: 문항 난이도별 배점 및 추정분할점수 세팅")
             st.subheader("1) 문항 유형 및 난이도별 배점 입력")
-            
+    
             col_choice, col_seo = st.columns(2)
             with col_choice:
                 st.markdown("**[선택형 배점]**")
-                w_c_low = st.number_input("선택형 하 배점", min_value=0, max_value=100, value=30, step=1)
-                w_c_mid = st.number_input("선택형 중 배점", min_value=0, max_value=100, value=20, step=1)
-                w_c_high = st.number_input("선택형 상 배점", min_value=0, max_value=100, value=19, step=1)
+                # float 형으로 기본값 설정(뒤에 .0을 붙임) 및 step, format 옵션 추가
+                w_c_low = st.number_input("선택형 하 배점", min_value=0.0, max_value=100.0, value=30.0, step=0.1, format="%.1f")
+                w_c_mid = st.number_input("선택형 중 배점", min_value=0.0, max_value=100.0, value=20.0, step=0.1, format="%.1f")
+                w_c_high = st.number_input("선택형 상 배점", min_value=0.0, max_value=100.0, value=19.0, step=0.1, format="%.1f")
             with col_seo:
                 st.markdown("**[서답형 배점]**")
-                w_s_low = st.number_input("서답형 하 배점", min_value=0, max_value=100, value=5, step=1)
-                w_s_mid = st.number_input("서답형 중 배점", min_value=0, max_value=100, value=20, step=1)
-                w_s_high = st.number_input("서답형 상 배점", min_value=0, max_value=100, value=6, step=1)
-                
-            total_weight = w_c_low + w_c_mid + w_c_high + w_s_low + w_s_mid + w_s_high
+                w_s_low = st.number_input("서답형 하 배점", min_value=0.0, max_value=100.0, value=5.0, step=0.1, format="%.1f")
+                w_s_mid = st.number_input("서답형 중 배점", min_value=0.0, max_value=100.0, value=20.0, step=0.1, format="%.1f")
+                w_s_high = st.number_input("서답형 상 배점", min_value=0.0, max_value=100.0, value=6.0, step=0.1, format="%.1f")
+        
+            # 배점 총합 계산 (소수점 부동소수점 오차 방지를 위해 round 처리)
+            total_weight = round(w_c_low + w_c_mid + w_c_high + w_s_low + w_s_mid + w_s_high, 1)
             st.metric(label="입력된 배점 총합", value=f"{total_weight} / 100 점")
-            
-            if total_weight != 100:
+    
+            # 정수 100이 아니라 소수점 비교 시 발생할 수 있는 미세 오차 방지
+            if abs(total_weight - 100.0) > 1e-5:
                 st.error("❌ 문항 유형별 배점의 총합이 정확히 **100점**이어야 예상정답률 산출이 가능합니다. 배점을 조정해주세요.")
             else:
                 st.success("✅ 배점 총합 100점 확인 완료! 목표 분할점수를 바탕으로 오차 최소화 시뮬레이션을 시작합니다.")
