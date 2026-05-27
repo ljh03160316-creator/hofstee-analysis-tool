@@ -194,12 +194,12 @@ if uploaded_file is not None:
                     st.success(f"🎯 **Hofstee 합격선(교점) 계산 성공!**")
                     metric_col1, metric_col2 = st.columns(2)
                     metric_col1.metric("분할점수 (컷오프 점수)", f"{intersection_x:.2f} 점")
-                    metric_col2.metric("누적 비율", f"{intersection_y:.2f} %")
+                    metric_col2.metric("누적 탈락 비율", f"{intersection_y:.2f} %")
                     
                     if st.button(f"💾 현재 [{target_step}] 결과 데이터에 저장하기"):
                         st.session_state.hofstee_results[target_step] = {
                             "분할점수(점)": round(intersection_x, 2),
-                            "누적비율(%)": round(intersection_y, 2),
+                            "누적탈락비율(%)": round(intersection_y, 2),
                             "점수범위": f"{user_xmin}~{user_xmax}",
                             "비율범위": f"{user_ymin}~{user_ymax}"
                         }
@@ -270,7 +270,6 @@ if uploaded_file is not None:
             st.header("🎯 3단계: 문항 난이도별 배점 및 추정분할점수 세팅")
             st.subheader("1) 문항 유형 및 난이도별 배점 입력")
             
-            # 👉 요청하신 새로운 초기값 적용 (선택형 하=30, 서답형 하=5 등)
             col_choice, col_seo = st.columns(2)
             with col_choice:
                 st.markdown("**[선택형 배점]**")
@@ -351,10 +350,8 @@ if uploaded_file is not None:
                         if optimized_p[curr_lv][idx] > optimized_p[prev_lv][idx]:
                             optimized_p[curr_lv][idx] = optimized_p[prev_lv][idx]
 
-                # 👉 행과 열 전치 (세로축: 문항유형, 가로축: 성취수준)
                 columns_list = ["선택형 하", "선택형 중", "선택형 상", "서답형 하", "서답형 중", "서답형 상"]
                 
-                # 데이터 프레임 사전 빌드
                 table_dict = {}
                 for lv in levels:
                     table_dict[f"성취수준 {lv}"] = optimized_p[lv]
@@ -362,27 +359,36 @@ if uploaded_file is not None:
                 final_table = pd.DataFrame(table_dict, index=columns_list)
                 
                 st.subheader("2) 성취수준별 최적화된 문항 예상 정답률 표")
-                st.markdown("💡 *선택형(블루 계열)과 서답형(그린 계열) 구분을 명확히 디자인한 전치 레이아웃입니다.*")
+                st.markdown("💡 *선택형과 서답형 문항 영역 구분이 직관적으로 조정된 표입니다.*")
 
-                # 👉 디자인 고도화: 선택형/서답형 파트별 배경색 및 폰트 차별화 스타일링 정의
+                # 👉 [수정] 컬러 조합 및 선택형 상 - 서답형 하 경계선(double border) CSS 스타일 정의
                 def style_by_row_type(df):
-                    # 기본 스타일 데이터프레임 복사 생성
                     styles = pd.DataFrame('', index=df.index, columns=df.columns)
                     
                     for idx in df.index:
                         if "선택형" in idx:
-                            # 선택형 배경색: 은은하고 정돈된 파란색 계열, 텍스트 볼드
-                            styles.loc[idx] = 'background-color: #EBF3FC; color: #1E3A8A; font-weight: bold; border-bottom: 1px solid #D1E2F9;'
+                            # 선택형: 옅은 하늘색 배경 (#EAF2F8)
+                            base_style = 'background-color: #EAF2F8; color: #1B4F72; font-weight: bold; text-align: center;'
+                            if idx == "선택형 상":
+                                # 선택형 상 하단에 두 줄 테두리 추가
+                                styles.loc[idx] = base_style + ' border-bottom: 3px double #5DADE2;'
+                            else:
+                                styles.loc[idx] = base_style + ' border-bottom: 1px solid #D6E4F0;'
                         elif "서답형" in idx:
-                            # 서답형 배경색: 구분이 명확히 가는 은은한 녹색 계열, 텍스트 볼드
-                            styles.loc[idx] = 'background-color: #EFA9B; color: #065F46; font-weight: bold; border-bottom: 1px solid #D1FAE5;'
+                            # 서답형: 아주 살짝 조금 더 진한 하늘색 배경 (#D4E6F1)
+                            styles.loc[idx] = 'background-color: #D4E6F1; color: #1B4F72; font-weight: bold; text-align: center; border-bottom: 1px solid #A9CCE3;'
                     return styles
 
-                # 값 뒤에 % 기호 서식 추가하여 렌더링
                 formatted_table = final_table.map(lambda x: f"{x}%")
-                styled_df = formatted_table.style.apply(style_by_row_type, axis=None)
+                
+                
+                styled_df = formatted_table.style.set_table_styles([
+                    # 가로축 헤더(성취수준 목차) 스타일링
+                    {'selector': 'th', 'props': [('background-color', '#EAF2F8'), ('color', '#1B4F72'), ('font-weight', 'bold'), ('text-align', 'center'), ('border', '1px solid #D6E4F0')]},
+                    # 세로축 인덱스 목차 스타일링 (위의 row_type과 조화를 이루도록 설정)
+                    {'selector': 'th.row_heading', 'props': [('text-align', 'left')]}
+                ]).apply(style_by_row_type, axis=None)
 
-                # 인터랙티브 데이터프레임으로 화면에 출력
                 st.dataframe(styled_df, use_container_width=True)
                 
                 # 리포트 통계 출력
