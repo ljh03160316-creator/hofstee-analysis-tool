@@ -20,16 +20,20 @@ def load_korean_font():
     
     if not os.path.exists(font_path):
         try:
-            urllib.request.urlretrieve(font_url, font_path)
+            req = urllib.request.Request(font_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req) as response, open(font_path, 'wb') as out_file:
+                out_file.write(response.read())
         except Exception as e:
             return "sans-serif"
             
     try:
-        fm.fontManager.addfont(font_path)
-        font_prop = fm.FontProperties(fname=font_path)
-        return font_prop.get_name()
+        if os.path.exists(font_path):
+            fm.fontManager.addfont(font_path)
+            font_prop = fm.FontProperties(fname=font_path)
+            return font_prop.get_name()
     except:
-        return "sans-serif"
+        pass
+    return "sans-serif"
 
 font_name = load_korean_font()
 
@@ -43,7 +47,7 @@ plt.rcParams['font.family'] = font_name
 plt.rcParams['axes.unicode_minus'] = False
 
 # ==========================================
-# 세션 상태(Session State) 초기화 (결과 저장용)
+# 세션 상태(Session State) 초기화 (결과 및 버튼 클릭 상태 저장)
 # ==========================================
 if 'hofstee_results' not in st.session_state:
     st.session_state.hofstee_results = {}
@@ -105,7 +109,7 @@ if uploaded_file is not None:
             horizontal=True
         )
 
-        # 👉 구간별 초기값 딕셔너리 세팅
+        # 구간별 초기값 딕셔너리 세팅
         default_values = {
             "A/B분할점수": {"ymin": 10.0, "ymax": 20.0, "xmin": 80.0, "xmax": 90.0},
             "B/C분할점수": {"ymin": 35.0, "ymax": 45.0, "xmin": 65.0, "xmax": 80.0},
@@ -128,10 +132,9 @@ if uploaded_file is not None:
             st.markdown("""
             **[입력 순서]**
             1. **누적 비율 권장치(최소/최대)**를 먼저 설정합니다. 
-            2. 비율 설정이 완료되면 **평가 점수 권장치(최소/최대)** 입력창이 활성화됩니다.
+            2. **'비율 설정 완료'** 버튼을 누르면 **평가 점수 권장치(최소/최대)** 입력창이 활성화됩니다.
             """)
             
-            # 👉 요청하신 안내 멘트 추가
             st.caption("⚠️ *초기값으로 설정된 값은 권장수치로 개인적인 견해에 바탕합니다.*")
 
             # 2-1. 누적 비율 먼저 입력받기 (설정된 초기값 적용)
@@ -142,8 +145,23 @@ if uploaded_file is not None:
             with col_y2:
                 user_ymax = st.number_input("누적 비율 권장 최대값 (Y축 최대, %)", min_value=0.0, max_value=100.0, value=current_defaults["ymax"], step=1.0, key=f"ymax_{target_step}")
 
-            # 비율 조건 체크 (최대 > 최소일 때 점수창 활성화)
-            if user_ymax > user_ymin:
+            # 👉 [설정] 버튼 추가
+            # 각 구간별로 버튼 클릭 상태를 분리하기 위해 key에 target_step을 결합합니다.
+            click_btn = st.button("⚙️ 비율 설정 완료 (점수 입력 활성화)", key=f"btn_{target_step}")
+            
+            # 세션 상태를 이용해 버튼 클릭 여부를 기억 (구간 이동 시 오작동 방지)
+            session_btn_key = f"is_set_{target_step}"
+            if click_btn:
+                if user_ymax > user_ymin:
+                    st.session_state[session_btn_key] = True
+                else:
+                    st.error("❌ 누적 비율 최대값은 최소값보다 커야 합니다.")
+                    st.session_state[session_btn_key] = False
+
+            # 👉 비율 설정이 완료(True) 되었을 때만 아래 로직 실행
+            if st.session_state.get(session_btn_key, False):
+                st.success(f"✅ 비율 설정 반영 완료: {user_ymin}% ~ {user_ymax}%")
+                
                 st.subheader(f"📍 [{target_step}] 점수 범위 설정")
                 col_x1, col_x2 = st.columns(2)
                 with col_x1:
@@ -222,7 +240,7 @@ if uploaded_file is not None:
                 st.pyplot(fig)
 
             else:
-                st.info("💡 점수 범위를 활성화하려면 **'누적 비율 권장 최대값'을 최소값보다 크게 입력**하세요.")
+                st.info("💡 상단의 **'비율 설정 완료'** 버튼을 누르시면 점수 입력창과 결과 그래프가 나타납니다.")
 
         # ==========================================
         # 4. 저장된 분할점수 상시 노출 영역
@@ -242,7 +260,11 @@ if uploaded_file is not None:
             st.dataframe(summary_df, use_container_width=True)
             
             if st.button("🔄 저장 데이터 전체 초기화"):
+                # 모든 세션 데이터 완전히 비우기
                 st.session_state.hofstee_results = {}
+                for step in desired_order:
+                    if f"is_set_{step}" in st.session_state:
+                        st.session_state[f"is_set_{step}"] = False
                 st.rerun()
         else:
             st.info("아직 저장된 분할점수 결과가 없습니다. 산출된 교점을 확인하고 상단의 '결과 데이터에 저장하기' 버튼을 눌러주세요.")
