@@ -359,7 +359,6 @@ if uploaded_file is not None:
                 final_table = pd.DataFrame(table_dict, index=columns_list)
                 
                 st.subheader("2) 성취수준별 최적화된 문항 예상 정답률 표")
-                st.markdown("💡 *선택형과 서답형 문항 영역 구분이 직관적으로 조정된 표입니다.*")
 
                 # 👉 [수정] 컬러 조합 및 선택형 상 - 서답형 하 경계선(double border) CSS 스타일 정의
                 def style_by_row_type(df):
