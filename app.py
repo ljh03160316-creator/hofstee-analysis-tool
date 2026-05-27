@@ -206,12 +206,12 @@ if uploaded_file is not None:
                     st.success(f"🎯 **Hofstee 합격선(교점) 계산 성공!**")
                     metric_col1, metric_col2 = st.columns(2)
                     metric_col1.metric("분할점수 (컷오프 점수)", f"{intersection_x:.2f} 점")
-                    metric_col2.metric("누적 탈락 비율", f"{intersection_y:.2f} %")
+                    metric_col2.metric("누적 비율", f"{intersection_y:.2f} %")
                     
                     if st.button(f"💾 현재 [{target_step}] 결과 데이터에 저장하기"):
                         st.session_state.hofstee_results[target_step] = {
                             "분할점수(점)": round(intersection_x, 2),
-                            "누적탈락비율(%)": round(intersection_y, 2),
+                            "누적 비율(%)": round(intersection_y, 2),
                             "점수범위": f"{user_xmin}~{user_xmax}",
                             "비율범위": f"{user_ymin}~{user_ymax}"
                         }
