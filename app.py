@@ -110,10 +110,10 @@ if uploaded_file is not None:
 
         default_values = {
             "A/B분할점수": {"ymin": 10.0, "ymax": 20.0, "xmin": 80.0, "xmax": 90.0},
-            "B/C분할점수": {"ymin": 35.0, "ymax": 45.0, "xmin": 65.0, "xmax": 80.0},
-            "C/D분할점수": {"ymin": 60.0, "ymax": 70.0, "xmin": 50.0, "xmax": 65.0},
-            "D/E분할점수": {"ymin": 80.0, "ymax": 100.0, "xmin": 40.0, "xmax": 50.0},
-            "E/미도달분할점수": {"ymin": 95.0, "ymax": 100.0, "xmin": 30.0, "xmax": 40.0}
+            "B/C분할점수": {"ymin": 30.0, "ymax": 40.0, "xmin": 65.0, "xmax": 75.0},
+            "C/D분할점수": {"ymin": 50.0, "ymax": 60.0, "xmin": 50.0, "xmax": 60.0},
+            "D/E분할점수": {"ymin": 70.0, "ymax": 80.0, "xmin": 35.0, "xmax": 45.0},
+            "E/미도달분할점수": {"ymin": 90.0, "ymax": 100.0, "xmin": 10.0, "xmax": 30.0}
         }
         
         comment_values = {
