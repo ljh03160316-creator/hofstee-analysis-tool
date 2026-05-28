@@ -116,7 +116,6 @@ if uploaded_file is not None:
             "E/미도달분할점수": {"ymin": 95.0, "ymax": 100.0, "xmin": 30.0, "xmax": 40.0}
         }
         
-        # 👉 요청하신 성취도별 맞춤 안내 멘트 매핑 사전
         comment_values = {
             "A/B분할점수": "성취도 A의 누적 비율값을 설정해주세요.",
             "B/C분할점수": "성취도 B의 누적 비율값을 설정해주세요.",
@@ -144,7 +143,6 @@ if uploaded_file is not None:
             """)
             st.caption("⚠️ *초기값으로 설정된 값은 권장수치로 개인적인 견해에 바탕합니다.*")
 
-            # 👉 요청하신 안내 멘트 동적 표출 부분
             st.subheader(f"📍 [{target_step}] 누적 비율 설정")
             st.info(f"💡 {current_comment}")
             
@@ -283,7 +281,6 @@ if uploaded_file is not None:
             st.header("🎯 3단계: 문항 난이도별 배점 및 추정분할점수 세팅")
             st.subheader("1) 문항 유형 및 난이도별 배점 입력")
             
-            # 👉 [수정] 소수점 아래 한 자리까지 입력 가능하도록 변경 (value=30.0, step=0.1, format="%.1f")
             col_choice, col_seo = st.columns(2)
             with col_choice:
                 st.markdown("**[선택형 배점]**")
@@ -296,11 +293,9 @@ if uploaded_file is not None:
                 w_s_mid = st.number_input("서답형 중 배점", min_value=0.0, max_value=100.0, value=20.0, step=0.1, format="%.1f")
                 w_s_high = st.number_input("서답형 상 배점", min_value=0.0, max_value=100.0, value=6.0, step=0.1, format="%.1f")
                 
-            # 배점 총합 계산 및 반올림 오차 보정
             total_weight = round(w_c_low + w_c_mid + w_c_high + w_s_low + w_s_mid + w_s_high, 1)
             st.metric(label="입력된 배점 총합", value=f"{total_weight} / 100 점")
             
-            # 부동소수점 오차 감안 비교 규칙 적용
             if abs(total_weight - 100.0) > 1e-5:
                 st.error("❌ 문항 유형별 배점의 총합이 정확히 **100점**이어야 예상정답률 산출이 가능합니다. 배점을 조정해주세요.")
             else:
@@ -339,8 +334,19 @@ if uploaded_file is not None:
                         for c1 in range(5, c0 + 1, 5): 
                             for c2 in range(5, c1 + 1, 5):
                                 for s_l in range(5, 100, 5):
+                                    # 👉 [규칙 추가]: 동일 난이도에서 선택형 정답률은 서답형 정답률보다 낮지 않아야 함 (선택형 하 >= 서답형 하)
+                                    if c0 < s_l:
+                                        continue
+                                        
                                     for s_m in range(5, s_l + 1, 5): 
+                                        # 👉 [규칙 추가]: 선택형 중 >= 서답형 중
+                                        if c1 < s_m:
+                                            continue
+                                            
                                         for s_h in range(5, s_m + 1, 5):
+                                            # 👉 [규칙 추가]: 선택형 상 >= 서답형 상
+                                            if c2 < s_h:
+                                                continue
                                             
                                             calc_score = (c0*weights[0] + c1*weights[1] + c2*weights[2] + 
                                                           s_l*weights[3] + s_m*weights[4] + s_h*weights[5]) / 100.0
@@ -359,6 +365,7 @@ if uploaded_file is not None:
                     
                     optimized_p[lv] = best_combo
 
+                # 역전 현상 보정 (상위 등급 정답률 >= 하위 등급 정답률 규칙 유지)
                 for i in range(1, len(levels)):
                     prev_lv = levels[i-1]
                     curr_lv = levels[i]
@@ -405,13 +412,8 @@ if uploaded_file is not None:
                 # 리포트 통계 출력
                 st.markdown("**[참고] 목표 분할점수 vs 시뮬레이션 산출점수 비교**")
                 for lv in levels:
-                    res = optimized_p[lv]
-                    calc_s = (res[0]*weights[0] + res[1]*weights[2-1] + res[2]*weights[2] + 
-                              res[3]*weights[3] + res[4]*weights[4] + res[5]*weights[5]) / 100.0
-                    
-                    # 오차 디스플레이 오차 교정 연산 반영
-                    real_calc_score = (res[0]*weights[0] + res[1]*weights[1] + res[2]*weights[2] + 
-                                       res[3]*weights[3] + res[4]*weights[4] + res[5]*weights[5]) / 100.0
+                    real_calc_score = (optimized_p[lv][0]*weights[0] + optimized_p[lv][1]*weights[1] + optimized_p[lv][2]*weights[2] + 
+                                       optimized_p[lv][3]*weights[3] + optimized_p[lv][4]*weights[4] + optimized_p[lv][5]*weights[5]) / 100.0
                     st.caption(f"• **성취수준 {lv}**: 목표 분할점수 = {target_scores[lv]:.2f}점 | 정답률 기준 산출점수 = {real_calc_score:.2f}점 (오차: {abs(real_calc_score - target_scores[lv]):.2f})")
 
         else:
